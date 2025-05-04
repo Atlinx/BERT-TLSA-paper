@@ -1,0 +1,107 @@
+import requests 
+from bs4 import BeautifulSoup
+import re
+import pandas as pd 
+
+review_counter = 0
+all_text = []
+def determine_max(score):
+    match =re.match(r"(\d+(\.\d+)?)/(\d+(\.\d+)?)", score)
+    if match:
+         denom =(match.group(3))
+         return denom
+    elif re.match(r"^[A-F][+-]?$", score):
+         return "A+"
+    
+    else: return None 
+
+def determine_score(score):
+    match =re.match(r"(\d+(\.\d+)?)/(\d+(\.\d+)?)", score)
+    if match:
+         denom =(match.group(1))
+         return denom
+    elif re.match(r"^[A-F][+-]?$", score):
+         return score
+    
+
+def determine_name(movie):
+     formatted_string = movie.replace('_', ' ').title()
+     return formatted_string
+
+
+movies = ["dune_2021","the_matrix", "inception", "interstellar_2014", "the_dark_knight_2008", "the_shawshank_redemption",  "fight_club", "pulp_fiction",
+    "forrest_gump", "the_godfather", "godfather_part_ii", "the_dark_knight_rises",
+    "schindlers_list", "the_lord_of_the_rings_the_return_of_the_king_2003", "x_men_days_of_future_past", "x_men_apocalypse", "toxic_avenger", "big_hero_6",
+     "last_days_in_vietnam", "barbie", "marvels_the_avengers", "big", "dil-chahta-hai", "the_incredible_hulk", "oppenheimer_2023", "the_call_2020_kr",
+     "the_40_year_old_virgin", "tmnt_2007", "sing_2016","harry_potter_and_the_sorcerers_stone", "world-war-z", "teenage_mutant_ninja_turtles_mutant_mayhem",
+      "spider_man_across_the_spider_verse", "spider_man_into_the_spider_verse", "spider_man_no_way_home", "top_gun_maverick", "hes_just_not_that_into_you", 
+        "cal", "inside_out_2015", "insidious_the_red_door", "insidious", "smile_2022","paper_towns", "to_all_the_boys_ive_loved_before", "talk_to_me_2023", 
+          "1017776-rocky", "rocky_iv", "karate_kid", "star_wars_episode_iii_revenge_of_the_sith", "star_wars_episode_vii_the_force_awakens", "joker_folie_a_deux",
+          "handsome_devil", "the_take_2016", "get_out","the_super_mario_bros_movie", "a_minecraft_movie", "border_2018", "wild_at_heart", "the_suicide_squad", 
+          "madea_goes_to_jail", "fantastic_four", "iron_man", "iron_giant", "eat_pray_love", "the_lego_ninjago_movie", "waste-land", "land_of_the_dead", 
+          "birdman_2014", "creed_2015", "pirates_of_the_caribbean_the_curse_of_the_black_pearl", "monsters_inc", "shadow_in_the_cloud", "kingdom_of_the_planet_of_the_apes",
+          "wreck_it_ralph", "mortal_kombat_2021", "sausage_party", "1066050-party_girl", "mortal_kombat", "et_the_extraterrestrial", "dont_say_a_word", "fifty_shades_of_grey", 
+          "bagman_2024", "the_good_the_bad_and_the_ugly", "good_shepherd", "1032176-goodfellas", "seven", "deadpool", "its_a_wonderful_life", "pitch_perfect", "silence_of_the_lambs", 
+          "seven_samurai_1956", "saving_private_ryan", "city_of_god", "green_mile", "1084398-life_is_beautiful", "terminator_2_judgment_day", "terminator", "stargate_the_ark_of_truth", 
+          "back_to_the_future", "back_to_the_future", "pianist", "gladiator", "parasite_2019", "american_psycho", "the_lion_king", "grave_of_the_fireflies", 
+          "departed", "whiplash_2014", "harakiri", "american_history_x", "prestige", "leon_the_professional", "1003707-casablanca", "the_great_gatsby_2013", "usual_suspects",
+          "untouchables", "cinema_paradiso", "alien", "modern_times", "once_upon_a_time_in_hollywood", "django_unchained_2012", "city_lights", "apocalypse_now", "memento", "wall_e", 
+          "raiders_of_the_lost_ark", "the_lives_of_others", "avengers_infinity_war", "sunset_boulevard", "paths_of_glory", "witness_for_the_prosecution", "shining","great_dictator",
+          "12th_fail", "quel_maledetto_treno_blindato", "coco_2017", "amadeus", "toy_story", "good_will_hunting", "oldboy", "doctor_strange_in_the_multiverse_of_madness", "das_boot", 
+          "american_beauty", "a_brave_heart_the_lizzie_velasquez_story", "1065684-braveheart", "princess_mononoke", "your_name_2017", "high_and_low", "3_idiots", "front_of_the_class", 
+          "once_upon_a_time_in_america", "capernaum", "singin_in_the_rain", "come_and_see", "requiem_for_a_dream", "toy_story_3", "the_hunt_2019", "ikiru", "eternal_sunshine_of_the_spotless_mind", 
+          "2001_a_space_odyssey", "reservoir_dogs", "1001115-apartment", "incendies", "lawrence_of_arabia", "scarface", "double_indemnity", "the_heat", "north_by_northwest", 
+          "citizen_kane", "up", "1012928-m", "full_metal_jacket", "vertigo", "amelie", "a_separation_2011", "to_kill_a_mockingbird", "clockwork_orange", "like_stars_on_earth", 
+          "die_hard", "1020130-sting", "indiana_jones_and_the_dial_of_destiny", "metropolis_2001", "snatch", "1917_2019", "la_confidential", "bicycle_thieves", "downfall", 
+          "dangal", "the_wolf_of_wall_street_2013", "taxi_driver", "hamilton_2020", "green_book", "for_a_few_dollars_more", "truman_show", "some_like_it_hot", "1198124-shutter_island", 
+          "the_kid_2019", "the_father_2021", "1000626-all_about_eve", "jurassic_park", "there_will_be_water", "1067987-casino", "sixth_sense", "ran", "no_country_for_old_men", 
+          "1021244-thing", "pans_labyrinth", "1041911-unforgiven", "beautiful_mind", "kill_bill_vol_1", "treasure_of_the_sierra_madre", "prisoners_2013", "yojimbo", "finding_nemo", 
+          "the_great_escape"
+
+
+         ]
+for movie in movies:
+    url = f"https://www.rottentomatoes.com/m/{movie}/reviews?type=user"
+    
+    response = requests.get(url)
+    print(response.status_code)
+    #print(response.text)
+   
+    soup = BeautifulSoup(response.content, 'lxml')
+    
+    
+    divs = soup.find_all('div', {'class': 'audience-review-row'})
+    #print(divs)
+    
+    
+    
+    for x,block in enumerate(divs[:200],start = 1):
+        review_block = block.find('p',class_ = "audience-reviews__review")
+        #print(review_block)
+        score_block = block.find('rating-stars-group')
+        reviewer_block = block.find('a', class_='audience-reviews__name')
+        
+        review = review_block.get_text(strip=True) if review_block else "No review text"    
+        reviewer = reviewer_block.get_text(strip=True) if reviewer_block else " "
+        score = score_block.get('score') if score_block else " "
+
+        #print(reviewer)
+        #print(score)
+        #print(review)
+        entry = {
+            'site': "Rotten Tomatoes",
+            'user': reviewer ,    
+            'review_target': determine_name(movie),    
+            'review': review,
+            'score': score,  
+            'max_score': 5   
+                }
+        review_counter +=1
+        all_text.append(entry)
+        
+        
+df = pd.DataFrame(all_text)
+
+print(df.head(100))
+print("\n number of reviews", review_counter)
+print(len(movies))
