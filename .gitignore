@@ -172,3 +172,7 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
+
+# Masked data files
+*_masked_data.dt
+*.pt
