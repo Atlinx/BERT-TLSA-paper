@@ -175,4 +175,10 @@ cython_debug/
 
 # Masked data files
 *_masked_data.dt
+*_reviews_data.dt
 *.pt
+
+notebooks/*.csv
+scam
+
+*.bin
